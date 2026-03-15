@@ -17,6 +17,8 @@ const { fetchArticArtworks } = require('./fetch-artic');
 
 const OUTPUT_FILE = path.join(__dirname, '../data/artworks.json');
 const MAX_PER_SOURCE = 400; // Limit per API to keep total size manageable
+const MET_MAX = 100; // Lower target – Met API is slow, many objects filtered out
+const MET_TIMEOUT_MS = 8 * 60 * 1000; // 8 min max – avoid GitHub Actions timeout
 
 async function main() {
   console.log('🔄 Processing artworks from all sources...\n');
@@ -30,10 +32,10 @@ async function main() {
   allArtworks = ngaData;
   console.log(`   ✅ ${ngaData.length} artworks\n`);
 
-  // 2. The Metropolitan Museum of Art
+  // 2. The Metropolitan Museum of Art (8 min timeout – returns partial if slow)
   console.log('📥 2/4 The Metropolitan Museum of Art...');
   try {
-    const metArtworks = await fetchMetArtworks(MAX_PER_SOURCE);
+    const metArtworks = await fetchMetArtworks(MET_MAX, MET_TIMEOUT_MS);
     allArtworks = allArtworks.concat(metArtworks);
     console.log(`   ✅ ${metArtworks.length} artworks (total: ${allArtworks.length})\n`);
   } catch (err) {

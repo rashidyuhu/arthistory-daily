@@ -77,9 +77,12 @@ function mapToArtwork(obj) {
 }
 
 /**
- * Fetch up to maxCount public domain artworks with images from the Met
+ * Fetch up to maxCount public domain artworks with images from the Met.
+ * @param {number} maxCount - Max artworks to fetch
+ * @param {number} timeoutMs - Stop after this many ms (return partial results)
  */
-async function fetchMetArtworks(maxCount = 800) {
+async function fetchMetArtworks(maxCount = 100, timeoutMs = 8 * 60 * 1000) {
+  const startTime = Date.now();
   let objectIDs = [];
   try {
     // Prefer search with hasImages for higher hit rate
@@ -99,6 +102,11 @@ async function fetchMetArtworks(maxCount = 800) {
   const batchSize = 20; // Smaller batches to avoid triggering bot protection
 
   for (let i = 0; i < objectIDs.length && results.length < maxCount; i += batchSize) {
+    if (Date.now() - startTime > timeoutMs) {
+      console.log(`  Met: timeout – returning ${results.length} artworks`);
+      break;
+    }
+
     const batch = objectIDs.slice(i, i + batchSize);
     const batchResults = await Promise.all(
       batch.map((id) => fetchJson(`${MET_OBJECTS_URL}/${id}`).catch(() => null))
@@ -113,12 +121,11 @@ async function fetchMetArtworks(maxCount = 800) {
       if (results.length >= maxCount) break;
     }
 
-    if (i % 200 === 0 && i > 0) {
+    if (results.length > 0 && results.length % 50 === 0) {
       console.log(`  Met: fetched ${results.length} so far...`);
     }
 
-    // Small delay between batches to avoid rate limiting
-    await sleep(300);
+    await sleep(200);
   }
 
   return results;
