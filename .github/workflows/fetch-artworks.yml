@@ -1,0 +1,28 @@
+# Fetch artworks from museum APIs (Met, Cleveland, Artic work better from US-based IPs)
+# Run manually: Actions → Fetch artworks → Run workflow
+name: Fetch artworks
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Process artworks from all sources
+        run: npm run process-data:all
+
+      - name: Upload artworks.json
+        uses: actions/upload-artifact@v4
+        with:
+          name: artworks
+          path: data/artworks.json

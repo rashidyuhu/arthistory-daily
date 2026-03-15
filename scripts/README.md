@@ -75,3 +75,20 @@ The script creates `data/artworks.json` with artwork data in this format:
 - Some artworks might not have the expected copyright fields
 
 **Note:** You may need to adjust the field mapping in the script based on the actual CSV structure from National Gallery of Art. Check their documentation for the exact field names.
+
+---
+
+## process-all-artworks.js (all sources)
+
+Fetches artworks from NGA, Met, Cleveland, and Art Institute of Chicago, then merges into `data/artworks.json`.
+
+```bash
+npm run process-data:all
+```
+
+### Met Museum API blocking
+
+The Met API sometimes returns HTML instead of JSON when called from certain regions (Incapsula bot protection). If Met fails:
+
+1. **GitHub Actions** (recommended): Push the repo to GitHub, go to Actions → "Fetch artworks" → Run workflow. The workflow runs on US-based servers where the Met API usually works. Download `artworks.json` from the workflow artifacts.
+2. **VPN**: Connect to a US VPN, then run `npm run process-data:all` locally.

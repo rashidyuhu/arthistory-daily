@@ -2,35 +2,41 @@ import { useQuery } from '@tanstack/react-query';
 import { Artwork, ArtworksResponse } from '../types';
 import { getDailyArtwork, getTodayCacheKey } from './getDailyArtwork';
 
-// Import local artworks for development
+// Import local artworks (used in dev + as fallback when remote fails)
 import localArtworks from '../../data/artworks.json';
 
+// Change this if you host artworks.json elsewhere
 const ARTWORKS_ENDPOINT = 'https://yuhu.no/dailyarthistory/artworks.json';
 
 /**
  * Fetches all artworks from the remote endpoint (production) or returns local data (development).
+ * Falls back to bundled local data if remote fetch fails (offline, server down, etc.).
  */
 async function fetchArtworks(): Promise<ArtworksResponse> {
   // In development, use local bundled JSON file
   if (__DEV__) {
-    // Return local data as a resolved promise to maintain async interface
     return Promise.resolve(localArtworks as ArtworksResponse);
   }
-  
-  // In production, fetch from remote URL
-  const response = await fetch(ARTWORKS_ENDPOINT);
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch artworks: ${response.statusText}`);
+
+  // In production, try remote first, fallback to local on failure
+  try {
+    const response = await fetch(ARTWORKS_ENDPOINT);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    if (Array.isArray(data) && data.length > 0) {
+      return data;
+    }
+  } catch {
+    // Remote failed – use bundled local data so app still works offline
   }
-  
-  const data = await response.json();
-  return data;
+  return localArtworks as ArtworksResponse;
 }
 
 /**
  * React Query hook to fetch and cache artworks.
- * The daily artwork is selected deterministically based on UTC time.
+ * The daily artwork is selected deterministically based on local time.
  */
 export function useArtworks() {
   const query = useQuery({

@@ -24,7 +24,7 @@ interface DescriptionPopoverProps {
 export function DescriptionPopover({
   visible,
   onClose,
-  title = 'Om bildet',
+  title = 'About the artwork',
   text,
 }: DescriptionPopoverProps) {
   if (!visible) {

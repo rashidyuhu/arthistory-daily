@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
+  AppState,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,7 +29,18 @@ const queryClient = new QueryClient({
 });
 
 function ArtworkScreen() {
+  const [, forceUpdate] = useState(0);
   const { dailyArtwork, isLoading, isError, error } = useArtworks();
+
+  // Re-render when app comes to foreground so getDayIndex() runs with current date
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        forceUpdate((n) => n + 1);
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   if (isLoading) {
     return (

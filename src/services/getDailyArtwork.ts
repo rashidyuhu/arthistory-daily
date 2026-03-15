@@ -25,16 +25,16 @@ export function getDayIndex(): number {
 }
 
 /**
- * Seeded random number generator (0–1).
+ * Seeded random number generator [0, 1).
  * Same seed always gives same sequence, so everyone sees the same artwork on the same day.
  */
 function seededRandom(seed: number): () => number {
-  let t = seed;
+  let t = seed === 0 ? 1 : seed; // Avoid seed 0 (xorshift produces constant 0)
   return function () {
     t ^= t << 13;
     t ^= t >> 17;
     t ^= t << 5;
-    return ((t >>> 0) / 0xffffffff) + 0.5;
+    return (t >>> 0) / 0x100000000; // [0, 1) to avoid out-of-bounds
   };
 }
 

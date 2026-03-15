@@ -18,8 +18,16 @@ import {
   Gesture,
   GestureDetector,
 } from 'react-native-gesture-handler';
+import { Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../theme';
+
+const ART_SOURCES = [
+  { name: 'National Gallery of Art', url: 'https://www.nga.gov', location: 'USA' },
+  { name: 'The Metropolitan Museum of Art', url: 'https://www.metmuseum.org', location: 'USA' },
+  { name: 'The Cleveland Museum of Art', url: 'https://www.clevelandart.org', location: 'USA' },
+  { name: 'The Art Institute of Chicago', url: 'https://www.artic.edu', location: 'USA' },
+];
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const POPOVER_HEIGHT = SCREEN_HEIGHT * 0.88; // 88% of screen height
@@ -111,7 +119,7 @@ export function InfoPopover({ isOpen, onClose }: InfoPopoverProps) {
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>What is this?</Text>
                 <Text style={styles.sectionText}>
-                  Art History Daily is a creative challenge app that presents you with a new artwork from the National Gallery of Art every day. Each day at midnight UTC, a new artwork is revealed for you to recreate and interpret in your own style.
+                  Art History Daily is a creative challenge app that presents you with a new artwork from world-renowned museums every day. Each day at midnight (in your timezone), a new artwork is revealed for you to recreate and interpret in your own style.
                 </Text>
               </View>
 
@@ -136,8 +144,25 @@ export function InfoPopover({ isOpen, onClose }: InfoPopoverProps) {
 
               {/* Credits */}
               <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Artwork sources & credits</Text>
                 <Text style={styles.creditsText}>
-                  Artworks provided by the National Gallery of Art (USA), Open Access.
+                  Artworks are provided by the following institutions under Open Access / CC0 (Creative Commons Zero):
+                </Text>
+                <View style={styles.creditsList}>
+                  {ART_SOURCES.map((src) => (
+                    <TouchableOpacity
+                      key={src.name}
+                      onPress={() => Linking.openURL(src.url)}
+                      style={styles.creditRow}
+                    >
+                      <Ionicons name="open-outline" size={14} color={theme.colors.accent} style={styles.creditIcon} />
+                      <Text style={styles.creditsItemLink}>{src.name}</Text>
+                      <Text style={styles.creditsItemLocation}>({src.location})</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={styles.creditsSubtext}>
+                  All images are in the public domain. No login required. No data collection.
                 </Text>
               </View>
             </ScrollView>
@@ -234,8 +259,44 @@ const styles = StyleSheet.create({
   creditsText: {
     ...theme.typography.bodySmall,
     fontFamily: theme.typography.fontFamily.regular,
+    color: theme.colors.textSecondary,
+    textAlign: 'left',
+    marginBottom: theme.spacing.sm,
+  },
+  creditsList: {
+    marginBottom: theme.spacing.sm,
+  },
+  creditRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: theme.spacing.xs,
+  },
+  creditIcon: {
+    marginRight: theme.spacing.xs,
+  },
+  creditsItemLink: {
+    ...theme.typography.bodySmall,
+    fontFamily: theme.typography.fontFamily.regular,
+    color: theme.colors.accent,
+    textDecorationLine: 'underline',
+  },
+  creditsItemLocation: {
+    ...theme.typography.bodySmall,
+    fontFamily: theme.typography.fontFamily.regular,
+    color: theme.colors.textSecondary,
+    marginLeft: theme.spacing.xs,
+  },
+  creditsItem: {
+    ...theme.typography.bodySmall,
+    fontFamily: theme.typography.fontFamily.regular,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.xs,
+  },
+  creditsSubtext: {
+    ...theme.typography.bodySmall,
+    fontFamily: theme.typography.fontFamily.regular,
     color: theme.colors.textTertiary,
     fontStyle: 'italic',
-    textAlign: 'center',
+    textAlign: 'left',
   },
 });

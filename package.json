@@ -8,7 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "process-data": "node scripts/process-nga-data.js"
+    "process-data": "node scripts/process-nga-data.js",
+    "process-data:all": "node scripts/process-all-artworks.js"
   },
   "dependencies": {
     "@expo-google-fonts/playfair-display": "^0.4.2",

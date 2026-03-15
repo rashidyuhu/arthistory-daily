@@ -175,7 +175,7 @@ function mapToArtwork(row, imageMap, artistDisplayDateMap) {
   }
 
   const result = {
-    id: objectId.toString(),
+    id: `nga-${objectId.toString()}`,
     title: title || 'Untitled',
     artist: artist || 'Unknown Artist',
     year: year || 'Unknown',
@@ -186,7 +186,7 @@ function mapToArtwork(row, imageMap, artistDisplayDateMap) {
     culture: culture || 'Unknown',
     period: period || 'Unknown',
     creditLine: creditLine || 'National Gallery of Art',
-    source: source || 'National Gallery of Art',
+    source: 'National Gallery of Art',
     classification: classification || 'Unknown',
   };
   if (imageDescription) result.imageDescription = imageDescription;

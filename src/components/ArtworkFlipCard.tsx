@@ -243,9 +243,15 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
                 <Text style={styles.detailLabel}>Credit Line</Text>
                 <Text style={styles.detailValue}>{artwork.creditLine}</Text>
               </View>
+              {artwork.source && (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Collection</Text>
+                  <Text style={styles.detailValue}>{artwork.source}</Text>
+                </View>
+              )}
               {artwork.imageDescription && artwork.imageDescription.length > 0 && (
                 <View style={styles.detailRow}>
-                  <Text style={styles.detailLabel}>Om bildet</Text>
+                  <Text style={styles.detailLabel}>About the artwork</Text>
                   <Text style={styles.detailValue}>
                     {artwork.imageDescription.length <= PREVIEW_LENGTH
                       ? artwork.imageDescription
@@ -256,7 +262,7 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
                       onPress={() => setIsDescriptionOpen(true)}
                       style={styles.readMoreButton}
                     >
-                      <Text style={styles.readMoreText}>Les mer</Text>
+                      <Text style={styles.readMoreText}>Read more</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -289,7 +295,7 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
         <DescriptionPopover
           visible={isDescriptionOpen}
           onClose={() => setIsDescriptionOpen(false)}
-          title="Om bildet"
+          title="About the artwork"
           text={artwork.imageDescription}
         />
       )}
@@ -479,7 +485,7 @@ const styles = StyleSheet.create({
     ...theme.typography.bodySmall,
     fontFamily: 'SpecialElite_400Regular',
     color: '#2c1810',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   infoButton: {
     width: 44,
