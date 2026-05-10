@@ -23,8 +23,7 @@ interface NavBarProps {
 }
 
 const BG = theme.colors.background;
-const ACTIVE = '#FFFFFF';
-const INACTIVE = 'rgba(255,255,255,0.45)';
+const WHITE = '#FFFFFF';
 
 export function NavBar({
   activeTab,
@@ -43,50 +42,48 @@ export function NavBar({
       <TouchableOpacity
         style={styles.item}
         onPress={() => onChangeTab('daily')}
-        activeOpacity={0.7}
+        activeOpacity={0.75}
       >
-        <PortraitIcon size={26} color={activeTab === 'daily' ? ACTIVE : INACTIVE} />
-        <Text style={[styles.label, { color: activeTab === 'daily' ? ACTIVE : INACTIVE }]}>
+        <PortraitIcon size={26} color={WHITE} />
+        <Text style={[styles.label, activeTab === 'daily' && styles.labelActive]}>
           Daily
         </Text>
         {activeTab === 'daily' && <View style={styles.activePill} />}
       </TouchableOpacity>
 
-      {/* Divider */}
       <View style={styles.divider} />
 
-      {/* Favourite */}
-      <TouchableOpacity style={styles.action} onPress={onFavorite} hitSlop={10} activeOpacity={0.7}>
+      {/* Save */}
+      <TouchableOpacity style={styles.action} onPress={onFavorite} hitSlop={10} activeOpacity={0.75}>
         {isFav
-          ? <BookmarkFillIcon size={24} color="#FFD0D0" />
-          : <BookmarkIcon size={24} color={ACTIVE} />
+          ? <BookmarkFillIcon size={24} color={WHITE} />
+          : <BookmarkIcon size={24} color={WHITE} />
         }
-        <Text style={[styles.label, { color: isFav ? '#FFD0D0' : ACTIVE }]}>Save</Text>
+        <Text style={styles.label}>Save</Text>
       </TouchableOpacity>
 
       {/* Share */}
-      <TouchableOpacity style={styles.action} onPress={onShare} hitSlop={10} activeOpacity={0.7}>
-        <BirdIcon size={24} color={ACTIVE} />
-        <Text style={[styles.label, { color: ACTIVE }]}>Share</Text>
+      <TouchableOpacity style={styles.action} onPress={onShare} hitSlop={10} activeOpacity={0.75}>
+        <BirdIcon size={24} color={WHITE} />
+        <Text style={styles.label}>Share</Text>
       </TouchableOpacity>
 
-      {/* Info */}
-      <TouchableOpacity style={styles.action} onPress={onInfo} hitSlop={10} activeOpacity={0.7}>
-        <EyeIcon size={24} color={ACTIVE} />
-        <Text style={[styles.label, { color: ACTIVE }]}>About</Text>
+      {/* About */}
+      <TouchableOpacity style={styles.action} onPress={onInfo} hitSlop={10} activeOpacity={0.75}>
+        <EyeIcon size={24} color={WHITE} />
+        <Text style={styles.label}>About</Text>
       </TouchableOpacity>
 
-      {/* Divider */}
       <View style={styles.divider} />
 
       {/* Collection tab */}
       <TouchableOpacity
         style={styles.item}
         onPress={() => onChangeTab('collection')}
-        activeOpacity={0.7}
+        activeOpacity={0.75}
       >
-        <GalleryIcon size={26} color={activeTab === 'collection' ? ACTIVE : INACTIVE} />
-        <Text style={[styles.label, { color: activeTab === 'collection' ? ACTIVE : INACTIVE }]}>
+        <GalleryIcon size={26} color={WHITE} />
+        <Text style={[styles.label, activeTab === 'collection' && styles.labelActive]}>
           Collection
         </Text>
         {activeTab === 'collection' && <View style={styles.activePill} />}
@@ -124,19 +121,23 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica Neue',
     fontWeight: '500',
     letterSpacing: 0.2,
+    color: WHITE,
+  },
+  labelActive: {
+    fontWeight: '700',
   },
   activePill: {
     position: 'absolute',
     bottom: -4,
     width: 20,
     height: 3,
-    backgroundColor: '#fff',
+    backgroundColor: WHITE,
     borderRadius: 2,
   },
   divider: {
     width: StyleSheet.hairlineWidth,
     height: 24,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.3)',
     marginHorizontal: 2,
   },
 });
