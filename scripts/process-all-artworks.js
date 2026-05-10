@@ -1,9 +1,11 @@
 /**
- * Fetches and merges artworks from multiple museum APIs:
+ * Fetches and merges portrait paintings from multiple museum APIs:
  * - National Gallery of Art (NGA)
  * - The Metropolitan Museum of Art (Met)
  * - The Cleveland Museum of Art
  * - The Art Institute of Chicago
+ *
+ * All sources are capped and shuffled so no single museum dominates the pool.
  *
  * Usage: node scripts/process-all-artworks.js
  */
@@ -16,66 +18,95 @@ const { fetchClevelandArtworks } = require('./fetch-cleveland');
 const { fetchArticArtworks } = require('./fetch-artic');
 
 const OUTPUT_FILE = path.join(__dirname, '../data/artworks.json');
-const MAX_PER_SOURCE = 400; // Limit per API to keep total size manageable
-const MET_MAX = 100; // Lower target – Met API is slow, many objects filtered out
-const MET_TIMEOUT_MS = 8 * 60 * 1000; // 8 min max – avoid GitHub Actions timeout
+const MAX_PER_SOURCE = 400;
+const MET_MAX = 150;
+const MET_TIMEOUT_MS = 8 * 60 * 1000;
+
+/** Shuffle array in-place (Fisher-Yates) */
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/**
+ * Interleave artworks from multiple sources so days cycle through
+ * all museums rather than running through one source at a time.
+ */
+function interleave(groups) {
+  const result = [];
+  const queues = groups.map(g => [...g]);
+  while (queues.some(q => q.length > 0)) {
+    for (const q of queues) {
+      if (q.length > 0) result.push(q.shift());
+    }
+  }
+  return result;
+}
 
 async function main() {
-  console.log('🔄 Processing artworks from all sources...\n');
+  console.log('🔄 Processing portrait paintings from all sources...\n');
 
-  let allArtworks = [];
+  const sourceGroups = [];
 
-  // 1. National Gallery of Art (existing script)
-  console.log('📥 1/4 National Gallery of Art...');
+  // 1. National Gallery of Art
+  console.log('📥 1/4 National Gallery of Art (portraits only)...');
   await processNGAData();
   const ngaData = JSON.parse(fs.readFileSync(OUTPUT_FILE, 'utf8'));
-  allArtworks = ngaData;
-  console.log(`   ✅ ${ngaData.length} artworks\n`);
+  const ngaShuffled = shuffle(ngaData).slice(0, MAX_PER_SOURCE);
+  sourceGroups.push(ngaShuffled);
+  console.log(`   ✅ ${ngaData.length} found, using ${ngaShuffled.length}\n`);
 
-  // 2. The Metropolitan Museum of Art (8 min timeout – returns partial if slow)
-  console.log('📥 2/4 The Metropolitan Museum of Art...');
+  // 2. The Metropolitan Museum of Art
+  console.log('📥 2/4 The Metropolitan Museum of Art (portraits only)...');
   try {
     const metArtworks = await fetchMetArtworks(MET_MAX, MET_TIMEOUT_MS);
-    allArtworks = allArtworks.concat(metArtworks);
-    console.log(`   ✅ ${metArtworks.length} artworks (total: ${allArtworks.length})\n`);
+    sourceGroups.push(shuffle(metArtworks));
+    console.log(`   ✅ ${metArtworks.length} artworks\n`);
   } catch (err) {
     console.error('   ⚠️ Met API error:', err.message);
-    console.error('   💡 Met API is often blocked from some regions. Try:');
-    console.error('      • Run .github/workflows/fetch-artworks.yml in GitHub Actions');
-    console.error('      • Or use a VPN to a US IP, then run: npm run process-data:all\n');
+    console.error('   💡 Met API is often blocked from some regions. Try GitHub Actions.\n');
   }
 
   // 3. The Cleveland Museum of Art
-  console.log('📥 3/4 The Cleveland Museum of Art...');
+  console.log('📥 3/4 The Cleveland Museum of Art (portrait paintings only)...');
   try {
     const clevelandArtworks = await fetchClevelandArtworks(MAX_PER_SOURCE);
-    allArtworks = allArtworks.concat(clevelandArtworks);
-    console.log(`   ✅ ${clevelandArtworks.length} artworks (total: ${allArtworks.length})\n`);
+    sourceGroups.push(shuffle(clevelandArtworks));
+    console.log(`   ✅ ${clevelandArtworks.length} artworks\n`);
   } catch (err) {
     console.error('   ⚠️ Cleveland API error:', err.message, '\n');
   }
 
   // 4. The Art Institute of Chicago
-  console.log('📥 4/4 The Art Institute of Chicago...');
+  console.log('📥 4/4 The Art Institute of Chicago (portrait paintings only)...');
   try {
     const articArtworks = await fetchArticArtworks(MAX_PER_SOURCE);
-    allArtworks = allArtworks.concat(articArtworks);
-    console.log(`   ✅ ${articArtworks.length} artworks (total: ${allArtworks.length})\n`);
+    sourceGroups.push(shuffle(articArtworks));
+    console.log(`   ✅ ${articArtworks.length} artworks\n`);
   } catch (err) {
     console.error('   ⚠️ Art Institute API error:', err.message, '\n');
   }
 
-  // Ensure data directory exists
-  const dataDir = path.dirname(OUTPUT_FILE);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
+  // Interleave sources so the daily rotation visits all museums
+  const allArtworks = interleave(sourceGroups);
 
-  // Write merged file
+  const bySource = allArtworks.reduce((acc, a) => {
+    acc[a.source] = (acc[a.source] || 0) + 1;
+    return acc;
+  }, {});
+  console.log('📊 Source breakdown:');
+  Object.entries(bySource).forEach(([src, n]) => console.log(`   ${src}: ${n}`));
+
+  const dataDir = path.dirname(OUTPUT_FILE);
+  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(allArtworks, null, 2), 'utf8');
 
-  console.log('🎉 Done!');
-  console.log(`   Total: ${allArtworks.length} artworks`);
+  console.log('\n🎉 Done!');
+  console.log(`   Total: ${allArtworks.length} portrait paintings`);
   console.log(`   Saved to ${OUTPUT_FILE}`);
   console.log('\n📝 Next steps:');
   console.log('   1. Upload artworks.json to https://yuhu.no/dailyarthistory/');

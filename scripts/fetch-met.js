@@ -44,13 +44,26 @@ async function fetchJson(url, retries = 3) {
   }
 }
 
+const PORTRAIT_TERMS = [
+  'portrait', 'bust', 'woman', 'man', 'child', 'person', 'people',
+  'madonna', 'saint', 'face', 'figure', 'gentleman', 'lady', 'self-portrait',
+];
+
 /**
- * Exclude clearly abstract/non-figurative works
+ * Only include oil paintings that depict people
  */
-function isSuitable(obj) {
-  const text = `${obj.title || ''} ${obj.objectName || ''} ${(obj.tags || []).map(t => t.term || '').join(' ')}`.toLowerCase();
-  const exclude = ['abstract', 'geometric abstraction', 'color field', 'minimalist'];
-  return !exclude.some(term => text.includes(term));
+function isPortraitPainting(obj) {
+  // Must be a painting medium
+  const medium = (obj.medium || '').toLowerCase();
+  const isPainting = medium.includes('oil') || medium.includes('tempera') ||
+    medium.includes('acrylic') || medium.includes('canvas') ||
+    (obj.classification || '').toLowerCase().includes('painting') ||
+    (obj.objectName || '').toLowerCase().includes('painting');
+  if (!isPainting) return false;
+
+  // Must depict people
+  const text = `${obj.title || ''} ${(obj.tags || []).map(t => t.term || '').join(' ')}`.toLowerCase();
+  return PORTRAIT_TERMS.some(term => text.includes(term));
 }
 
 /**
@@ -85,18 +98,24 @@ async function fetchMetArtworks(maxCount = 100, timeoutMs = 8 * 60 * 1000) {
   const startTime = Date.now();
   let objectIDs = [];
   try {
-    // Prefer search with hasImages for higher hit rate
-    const searchUrl = 'https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=painting';
-    const ids = await fetchJson(searchUrl);
-    objectIDs = ids.objectIDs || [];
-    if (objectIDs.length < 500) {
-      const portraitIds = await fetchJson('https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=portrait');
-      objectIDs = [...new Set([...objectIDs, ...(portraitIds.objectIDs || [])])];
-    }
+    // Search specifically for portraits (paintings of people) with images
+    const [portraitRes, figureRes] = await Promise.all([
+      fetchJson('https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&medium=Paintings&q=portrait'),
+      fetchJson('https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&medium=Paintings&q=figure'),
+    ]);
+    objectIDs = [...new Set([
+      ...(portraitRes.objectIDs || []),
+      ...(figureRes.objectIDs || []),
+    ])];
   } catch (e) {
-    console.warn('  Met search failed, using objects list:', e.message);
-    const ids = await fetchJson(MET_OBJECTS_URL);
-    objectIDs = ids.objectIDs || [];
+    console.warn('  Met search failed, falling back to broad search:', e.message);
+    try {
+      const ids = await fetchJson('https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=portrait');
+      objectIDs = ids.objectIDs || [];
+    } catch (e2) {
+      const ids = await fetchJson(MET_OBJECTS_URL);
+      objectIDs = ids.objectIDs || [];
+    }
   }
   const results = [];
   const batchSize = 20; // Smaller batches to avoid triggering bot protection
@@ -114,8 +133,8 @@ async function fetchMetArtworks(maxCount = 100, timeoutMs = 8 * 60 * 1000) {
 
     for (const obj of batchResults) {
       if (!obj || !obj.isPublicDomain || !obj.primaryImage) continue;
-      if (!isSuitable(obj)) continue;
       if (!obj.title || obj.title === '') continue;
+      if (!isPortraitPainting(obj)) continue;
 
       results.push(mapToArtwork(obj));
       if (results.length >= maxCount) break;

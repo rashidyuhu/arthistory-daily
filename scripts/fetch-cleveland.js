@@ -25,10 +25,15 @@ function fetchJson(url) {
   });
 }
 
-function isSuitable(artwork) {
-  const text = `${artwork.title || ''} ${artwork.description || ''}`.toLowerCase();
-  const exclude = ['abstract', 'geometric abstraction', 'color field'];
-  return !exclude.some(term => text.includes(term));
+const PORTRAIT_TERMS = [
+  'portrait', 'bust', 'woman', 'man', 'child', 'person', 'people',
+  'madonna', 'saint', 'face', 'figure', 'gentleman', 'lady', 'self-portrait',
+];
+
+function isPortraitPainting(item) {
+  if ((item.type || '').toLowerCase() !== 'painting') return false;
+  const text = `${item.title || ''} ${item.description || ''}`.toLowerCase();
+  return PORTRAIT_TERMS.some(term => text.includes(term));
 }
 
 function mapToArtwork(item) {
@@ -53,13 +58,14 @@ function mapToArtwork(item) {
   };
 }
 
-async function fetchClevelandArtworks(maxCount = 800) {
+async function fetchClevelandArtworks(maxCount = 400) {
   const results = [];
   let skip = 0;
   const limit = 100;
 
   while (results.length < maxCount) {
-    const url = `${CLEVELAND_API}/?limit=${limit}&skip=${skip}`;
+    // type=Painting narrows results server-side; has_image=1 ensures images exist
+    const url = `${CLEVELAND_API}/?limit=${limit}&skip=${skip}&type=Painting&has_image=1&cc0=1`;
     const res = await fetchJson(url);
     const items = res.data || [];
 
@@ -69,8 +75,8 @@ async function fetchClevelandArtworks(maxCount = 800) {
       if (item.share_license_status !== 'CC0') continue;
       const img = item.images?.print || item.images?.web;
       if (!img?.url) continue;
-      if (!isSuitable(item)) continue;
       if (!item.title) continue;
+      if (!isPortraitPainting(item)) continue;
 
       results.push(mapToArtwork(item));
       if (results.length >= maxCount) break;
