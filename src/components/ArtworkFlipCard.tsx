@@ -19,7 +19,6 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Image } from 'expo-image';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Artwork } from '../types';
 import { theme } from '../theme';
 import { DescriptionPopover } from './DescriptionPopover';
@@ -28,17 +27,19 @@ import { ZoomModal } from './ZoomModal';
 const PREVIEW_LENGTH = 200;
 const CREAM = '#F5F0EA';
 
-// Info panel height — paddingTop(9) + row1(~22) + gap(4) + row2(~25) + paddingBottom(13) ≈ 73
+// Info panel fixed height (padding + two text rows)
 const INFO_H = 76;
+// Image mat — same as info panel horizontal padding
+const IMG_PAD = 14;
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const CARD_W = SCREEN_W - 16; // container has 8px padding each side
-const MAX_CARD_H = SCREEN_H * 0.80;
+const IMG_W = CARD_W - IMG_PAD * 2; // available image width inside mat
+const MAX_CARD_H = SCREEN_H * 0.82;
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
-// Filled pie chart showing remaining time in the day.
-// Full circle at midnight (new challenge), drains clockwise to empty at 11:59pm.
+// Filled pie showing remaining time — full circle at midnight, drains clockwise through the day
 function DayPie({ size = 26 }: { size?: number }) {
   const [progress, setProgress] = useState(1);
 
@@ -59,26 +60,22 @@ function DayPie({ size = 26 }: { size?: number }) {
 
   const piePath = (() => {
     if (progress >= 0.9999) {
-      // Full circle: SVG arc can't go 360° in one command, use two 180° arcs
       return `M ${cx} ${(cy - r).toFixed(2)} A ${r} ${r} 0 1 1 ${cx} ${(cy + r).toFixed(2)} A ${r} ${r} 0 1 1 ${cx} ${(cy - r).toFixed(2)} Z`;
     }
     if (progress <= 0.0001) return null;
-    const startA = -Math.PI / 2; // 12 o'clock
-    const endA = startA + 2 * Math.PI * progress;
-    const x1 = (cx + r * Math.cos(startA)).toFixed(3);
-    const y1 = (cy + r * Math.sin(startA)).toFixed(3);
-    const x2 = (cx + r * Math.cos(endA)).toFixed(3);
-    const y2 = (cy + r * Math.sin(endA)).toFixed(3);
+    const start = -Math.PI / 2;
+    const end = start + 2 * Math.PI * progress;
+    const x1 = (cx + r * Math.cos(start)).toFixed(3);
+    const y1 = (cy + r * Math.sin(start)).toFixed(3);
+    const x2 = (cx + r * Math.cos(end)).toFixed(3);
+    const y2 = (cy + r * Math.sin(end)).toFixed(3);
     const large = progress > 0.5 ? 1 : 0;
-    // Clockwise sweep (flag=1): filled arc from 12 o'clock shrinks as day progresses
     return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
   })();
 
   return (
     <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {/* Empty-state track */}
       <Circle cx={cx} cy={cy} r={r} fill="rgba(44,24,16,0.1)" />
-      {/* Filled remaining portion */}
       {piePath && <Path d={piePath} fill="rgba(44,24,16,0.58)" />}
     </Svg>
   );
@@ -95,14 +92,13 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
 
-  const insets = useSafeAreaInsets();
   const flipRotation = useSharedValue(0);
-  const labelFlip = useSharedValue(1); // scaleX: 1 → 0 → 1 simulates card flip
+  const labelFlip = useSharedValue(1);
 
-  // Card height: image natural ratio + info panel, capped at 80% of screen
+  // Card height: image fits in (IMG_W × imgH) mat, plus info panel, plus top mat padding
   const cardH = naturalSize
-    ? Math.min(CARD_W * (naturalSize.h / naturalSize.w) + INFO_H, MAX_CARD_H)
-    : CARD_W * 1.25 + INFO_H; // default 4:5 portrait while loading
+    ? Math.min(IMG_W * (naturalSize.h / naturalSize.w) + INFO_H + IMG_PAD, MAX_CARD_H)
+    : IMG_W * 1.25 + INFO_H + IMG_PAD; // default 4:5 portrait while image loads
 
   useEffect(() => {
     setIsFlipped(false);
@@ -112,7 +108,7 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
     labelFlip.value = 1;
   }, [artwork.id]);
 
-  // "Flip Card" label does a 3D-style scaleX flip every 10s to hint interactivity
+  // "FLIP CARD" label does a scaleX card-flip animation every 10s
   useEffect(() => {
     const doFlip = () => {
       labelFlip.value = withSequence(
@@ -168,15 +164,14 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
   const encodedUrl = getEncodedImageUrl(artwork.imageUrl);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 6 }]}>
-
-      {/* Card sized to image natural height */}
+    <View style={styles.container}>
+      {/* Card — explicit height, not flex */}
       <View style={[styles.card, { height: cardH }]}>
 
         {/* — Front side — */}
         <Animated.View style={[styles.cardSide, frontAnimatedStyle]}>
 
-          {/* Image — tap to zoom */}
+          {/* Image with 14px mat on top, left, right; info panel at bottom */}
           <Pressable
             style={styles.imageArea}
             onPress={() => !imageError && setIsZoomOpen(true)}
@@ -186,7 +181,6 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
                 source={{ uri: encodedUrl }}
                 style={styles.image}
                 contentFit="contain"
-                contentPosition="top"
                 transition={200}
                 onError={() => setImageError(true)}
                 onLoad={(e) => {
@@ -202,9 +196,8 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
             )}
           </Pressable>
 
-          {/* Cream info panel — overlaid at bottom of card */}
+          {/* Cream info panel — same background as mat */}
           <View style={styles.infoOverlay} pointerEvents="box-none">
-            {/* Row 1: artist / year + animated "Flip Card" label */}
             <View style={styles.overlayRow1}>
               <Text style={styles.overlayArtistYear} numberOfLines={1}>
                 {artwork.year}
@@ -221,8 +214,6 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
                 <Text style={styles.flipLabelText}>Flip Card</Text>
               </AnimatedTouchable>
             </View>
-
-            {/* Row 2: title + day pie */}
             <View style={styles.overlayRow2}>
               <Text style={styles.overlayTitle} numberOfLines={2}>
                 {artwork.title}
@@ -298,21 +289,20 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
+    // No flex — parent decides layout (daily: flex-end, collection: flex-start)
     paddingHorizontal: 8,
-    paddingBottom: 8,
-    alignItems: 'stretch',
+    paddingBottom: 0,
+    alignSelf: 'stretch',
   },
 
   card: {
-    // height set dynamically via inline style
+    // height set via inline style from cardH
     backgroundColor: CREAM,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 14,
     overflow: 'hidden',
     borderRadius: 3,
   },
@@ -325,13 +315,13 @@ const styles = StyleSheet.create({
     backfaceVisibility: 'hidden',
   },
 
-  // Front
+  // Image sits inside a 14px cream mat (top, left, right); info panel at bottom
   imageArea: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: IMG_PAD,
+    left: IMG_PAD,
+    right: IMG_PAD,
+    bottom: INFO_H,
     backgroundColor: CREAM,
   },
   image: {
@@ -356,7 +346,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Cream info panel
+  // Cream info panel — shares same background as image mat
   infoOverlay: {
     position: 'absolute',
     bottom: 0,
@@ -365,7 +355,7 @@ const styles = StyleSheet.create({
     backgroundColor: CREAM,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(44,24,16,0.12)',
-    paddingHorizontal: 14,
+    paddingHorizontal: IMG_PAD,
     paddingTop: 9,
     paddingBottom: 13,
   },
@@ -383,7 +373,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
     marginRight: 8,
   },
-  // "Flip Card" label — scaleX animated to simulate card flip
   flipLabel: {
     borderWidth: 1,
     borderColor: 'rgba(44,24,16,0.18)',

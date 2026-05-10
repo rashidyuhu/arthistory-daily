@@ -42,10 +42,21 @@ export function DailyScreen({ artwork, isLoading, isError, error }: DailyScreenP
     );
   }
 
-  return <ArtworkFlipCard artwork={artwork} />;
+  // Card floats to the bottom, over the nav bar — coral background shows above
+  return (
+    <View style={styles.floatingContainer}>
+      <ArtworkFlipCard artwork={artwork} />
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
+  // Pushes card to the bottom of available space; coral fills above
+  floatingContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: theme.colors.background,
+  },
   center: {
     flex: 1,
     justifyContent: 'center',
