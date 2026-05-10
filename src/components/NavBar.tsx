@@ -4,10 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   PortraitIcon,
   GalleryIcon,
-  ShareIcon,
-  InfoIcon,
-  HeartFillIcon,
-  HeartOutlineIcon,
+  QuillIcon,
+  EyeIcon,
+  BookmarkFillIcon,
+  BookmarkIcon,
 } from './icons';
 import { theme } from '../theme';
 
@@ -22,7 +22,7 @@ interface NavBarProps {
   onInfo: () => void;
 }
 
-const BG = theme.colors.background; // coral #FF7676
+const BG = theme.colors.background;
 const ACTIVE = '#FFFFFF';
 const INACTIVE = 'rgba(255,255,255,0.45)';
 
@@ -58,19 +58,22 @@ export function NavBar({
       {/* Favourite */}
       <TouchableOpacity style={styles.action} onPress={onFavorite} hitSlop={10} activeOpacity={0.7}>
         {isFav
-          ? <HeartFillIcon size={24} color="#FFD0D0" />
-          : <HeartOutlineIcon size={24} color={ACTIVE} />
+          ? <BookmarkFillIcon size={24} color="#FFD0D0" />
+          : <BookmarkIcon size={24} color={ACTIVE} />
         }
+        <Text style={[styles.label, { color: isFav ? '#FFD0D0' : ACTIVE }]}>Save</Text>
       </TouchableOpacity>
 
       {/* Share */}
       <TouchableOpacity style={styles.action} onPress={onShare} hitSlop={10} activeOpacity={0.7}>
-        <ShareIcon size={24} color={ACTIVE} />
+        <QuillIcon size={24} color={ACTIVE} />
+        <Text style={[styles.label, { color: ACTIVE }]}>Share</Text>
       </TouchableOpacity>
 
       {/* Info */}
       <TouchableOpacity style={styles.action} onPress={onInfo} hitSlop={10} activeOpacity={0.7}>
-        <InfoIcon size={24} color={ACTIVE} />
+        <EyeIcon size={24} color={ACTIVE} />
+        <Text style={[styles.label, { color: ACTIVE }]}>About</Text>
       </TouchableOpacity>
 
       {/* Divider */}
@@ -97,7 +100,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: BG,
-    paddingTop: 12,
+    paddingTop: 10,
     alignItems: 'center',
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: 'rgba(0,0,0,0.08)',
@@ -114,9 +117,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingBottom: 4,
+    gap: 3,
   },
   label: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: 'Helvetica Neue',
     fontWeight: '500',
     letterSpacing: 0.2,

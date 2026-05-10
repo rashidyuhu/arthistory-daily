@@ -89,7 +89,7 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
       <View style={styles.cardWrapper}>
         <View style={styles.card}>
 
-          {/* — Front side: image only — */}
+          {/* — Front side: image + info overlay — */}
           <Animated.View style={[styles.cardSide, frontAnimatedStyle]}>
             {/* Image: tap → zoom */}
             <Pressable
@@ -112,13 +112,29 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
               )}
             </Pressable>
 
-            {/* Flip button — overlaid bottom-right of image */}
+            {/* Info overlay — bottom of image */}
+            <View style={styles.infoOverlay} pointerEvents="none">
+              <Text style={styles.overlayArtistYear} numberOfLines={1}>
+                {artwork.year}
+                {artwork.artistDisplayDate
+                  ? ` · ${artwork.artist} (${artwork.artistDisplayDate})`
+                  : ` · ${artwork.artist}`}
+              </Text>
+              <View style={styles.overlayBottom}>
+                <Text style={styles.overlayTitle} numberOfLines={2}>
+                  {artwork.title}
+                </Text>
+                <CountdownTimer variant="text" color="rgba(255,255,255,0.6)" />
+              </View>
+            </View>
+
+            {/* Flip button — overlaid bottom-right above info */}
             <TouchableOpacity
               style={styles.flipOverlay}
               onPress={handleFlip}
               hitSlop={12}
             >
-              <FlipIcon size={18} color="rgba(0,0,0,0.35)" />
+              <FlipIcon size={18} color="rgba(255,255,255,0.7)" />
             </TouchableOpacity>
           </Animated.View>
 
@@ -169,24 +185,6 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
         </View>
       </View>
 
-      {/* Info section — below the card */}
-      <View style={styles.infoSection}>
-        <View style={styles.infoRow}>
-          <View style={styles.infoText}>
-            <Text style={styles.artistYear} numberOfLines={1}>
-              {artwork.year}
-              {artwork.artistDisplayDate
-                ? ` / ${artwork.artist} (${artwork.artistDisplayDate})`
-                : ` / ${artwork.artist}`}
-            </Text>
-            <Text style={styles.title} numberOfLines={2}>
-              {artwork.title}
-            </Text>
-          </View>
-          <CountdownTimer variant="text" />
-        </View>
-      </View>
-
       {/* Modals */}
       <ZoomModal
         visible={isZoomOpen}
@@ -210,7 +208,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 16,
   },
 
   // Card
@@ -245,11 +243,43 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  // Info overlay inside front card
+  infoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(10,6,4,0.58)',
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 12,
+  },
+  overlayArtistYear: {
+    fontSize: 11,
+    fontFamily: 'Helvetica Neue',
+    color: 'rgba(255,255,255,0.65)',
+    marginBottom: 3,
+    letterSpacing: 0.2,
+  },
+  overlayBottom: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  overlayTitle: {
+    flex: 1,
+    fontSize: 19,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    color: '#FFFFFF',
+    lineHeight: 24,
+  },
+
   flipOverlay: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 70,
     right: 10,
-    backgroundColor: 'rgba(255,255,255,0.75)',
+    backgroundColor: 'rgba(0,0,0,0.28)',
     borderRadius: 20,
     padding: 7,
   },
@@ -324,30 +354,4 @@ const styles = StyleSheet.create({
     color: '#2c1810',
   },
 
-  // Info below card
-  infoSection: {
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  infoText: {
-    flex: 1,
-  },
-  artistYear: {
-    fontSize: 12,
-    fontFamily: 'Helvetica Neue',
-    color: 'rgba(0,0,0,0.6)',
-    marginBottom: 2,
-  },
-  title: {
-    fontSize: 20,
-    fontFamily: 'PlayfairDisplay_700Bold',
-    color: '#1A1A1A',
-    lineHeight: 26,
-  },
 });

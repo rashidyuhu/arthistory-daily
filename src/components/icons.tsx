@@ -108,6 +108,102 @@ export function HeartOutlineIcon({ size = 24, color = '#fff' }: IconProps) {
   );
 }
 
+/** Bookmark ribbon — used for favorite (outline, not saved) */
+export function BookmarkIcon({ size = 24, color = '#fff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Ribbon body */}
+      <Path
+        d="M6 2 H18 Q19 2 19 3 L19 21 L12 16 L5 21 L5 3 Q5 2 6 2 Z"
+        stroke={color}
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      {/* Small ornamental horizontal rule inside */}
+      <Line x1="9" y1="7" x2="15" y2="7" stroke={color} strokeWidth="1" strokeLinecap="round" />
+      <Line x1="10" y1="10" x2="14" y2="10" stroke={color} strokeWidth="0.8" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** Bookmark ribbon — filled when saved */
+export function BookmarkFillIcon({ size = 24, color = '#FFD0D0' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        d="M6 2 H18 Q19 2 19 3 L19 21 L12 16 L5 21 L5 3 Q5 2 6 2 Z"
+        fill={color}
+      />
+      <Line x1="9" y1="7" x2="15" y2="7" stroke="rgba(0,0,0,0.2)" strokeWidth="1" strokeLinecap="round" />
+      <Line x1="10" y1="10" x2="14" y2="10" stroke="rgba(0,0,0,0.2)" strokeWidth="0.8" strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** Quill pen — used for share */
+export function QuillIcon({ size = 24, color = '#fff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Feather body — large right-curved shape */}
+      <Path
+        d="M20 2 C20 2 22 10 16 15 C12 18.5 7 19 4 21"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      {/* Left edge of feather */}
+      <Path
+        d="M20 2 C16 4 12 8 10 13 C8.5 17 7 19 4 21"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      {/* Quill spine / central vane */}
+      <Path
+        d="M20 2 L4 21"
+        stroke={color}
+        strokeWidth="0.9"
+        strokeLinecap="round"
+        strokeDasharray="2 2"
+      />
+      {/* Ink nib at tip */}
+      <Path
+        d="M4 21 L3 22.5 L5.5 21.5 Z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
+/** Artistic eye — used for info */
+export function EyeIcon({ size = 24, color = '#fff' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Outer almond eye shape */}
+      <Path
+        d="M2 12 Q7 5.5 12 5.5 Q17 5.5 22 12 Q17 18.5 12 18.5 Q7 18.5 2 12 Z"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      {/* Iris ring */}
+      <Circle cx="12" cy="12" r="3.2" stroke={color} strokeWidth="1.3" />
+      {/* Pupil fill */}
+      <Circle cx="12" cy="12" r="1.4" fill={color} />
+      {/* Highlight glint */}
+      <Circle cx="13.2" cy="10.8" r="0.55" fill={color} opacity={0.6} />
+      {/* Decorative upper lash hint */}
+      <Path
+        d="M8 8.5 Q10 7 12 6.5 Q14 7 16 8.5"
+        stroke={color}
+        strokeWidth="0.9"
+        strokeLinecap="round"
+        opacity={0.55}
+      />
+    </Svg>
+  );
+}
+
 /** Small flip/rotate arrow — used on the card */
 export function FlipIcon({ size = 20, color = '#888' }: IconProps) {
   return (

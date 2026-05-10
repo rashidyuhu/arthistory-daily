@@ -14,9 +14,10 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 interface CountdownTimerProps {
   size?: number;
   variant?: 'circle' | 'text';
+  color?: string;
 }
 
-export function CountdownTimer({ size = 60, variant = 'circle' }: CountdownTimerProps) {
+export function CountdownTimer({ size = 60, variant = 'circle', color }: CountdownTimerProps) {
   const [timeRemaining, setTimeRemaining] = useState({ hours: 0, minutes: 0 });
   const progress = useSharedValue(0);
 
@@ -80,12 +81,13 @@ export function CountdownTimer({ size = 60, variant = 'circle' }: CountdownTimer
   const minutesStr = String(timeRemaining.minutes).padStart(2, '0');
 
   if (variant === 'text') {
+    const textColor = color ?? theme.colors.countdownText;
     return (
-      <Text style={styles.textVariant} numberOfLines={1}>
-        <Text style={styles.textVariantBold}>{hoursStr}</Text>
+      <Text style={[styles.textVariant, { color: textColor }]} numberOfLines={1}>
+        <Text style={[styles.textVariantBold, { color: textColor }]}>{hoursStr}</Text>
         {' hours '}
-        <Text style={styles.textVariantBold}>{minutesStr}</Text>
-        {' minutes'}
+        <Text style={[styles.textVariantBold, { color: textColor }]}>{minutesStr}</Text>
+        {' min'}
       </Text>
     );
   }
