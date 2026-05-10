@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   PortraitIcon,
   GalleryIcon,
-  QuillIcon,
+  BirdIcon,
   EyeIcon,
   BookmarkFillIcon,
   BookmarkIcon,
@@ -66,7 +66,7 @@ export function NavBar({
 
       {/* Share */}
       <TouchableOpacity style={styles.action} onPress={onShare} hitSlop={10} activeOpacity={0.7}>
-        <QuillIcon size={24} color={ACTIVE} />
+        <BirdIcon size={24} color={ACTIVE} />
         <Text style={[styles.label, { color: ACTIVE }]}>Share</Text>
       </TouchableOpacity>
 
@@ -87,7 +87,7 @@ export function NavBar({
       >
         <GalleryIcon size={26} color={activeTab === 'collection' ? ACTIVE : INACTIVE} />
         <Text style={[styles.label, { color: activeTab === 'collection' ? ACTIVE : INACTIVE }]}>
-          Samling
+          Collection
         </Text>
         {activeTab === 'collection' && <View style={styles.activePill} />}
       </TouchableOpacity>

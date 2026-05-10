@@ -11,19 +11,70 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withSequence,
+  withDelay,
   interpolate,
   Extrapolate,
+  Easing,
 } from 'react-native-reanimated';
+import Svg, { Circle } from 'react-native-svg';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Artwork } from '../types';
 import { theme } from '../theme';
-import { CountdownTimer } from './CountdownTimer';
 import { DescriptionPopover } from './DescriptionPopover';
 import { ZoomModal } from './ZoomModal';
 import { FlipIcon } from './icons';
 
 const PREVIEW_LENGTH = 200;
+const CREAM = '#F5F0EA';
+
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
+// Small circular ring showing how much of today remains — fills clockwise from midnight
+function DayProgressRing({ size = 22 }: { size?: number }) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
+      const minutesRemaining = 24 * 60 - minutesSinceMidnight;
+      setProgress(minutesRemaining / (24 * 60));
+    };
+    update();
+    const id = setInterval(update, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const strokeW = 2.5;
+  const r = (size - strokeW * 2) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - progress);
+
+  return (
+    <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {/* Track */}
+      <Circle
+        cx={size / 2} cy={size / 2} r={r}
+        stroke="rgba(44,24,16,0.12)"
+        strokeWidth={strokeW}
+        fill="none"
+      />
+      {/* Progress arc */}
+      <Circle
+        cx={size / 2} cy={size / 2} r={r}
+        stroke="rgba(44,24,16,0.5)"
+        strokeWidth={strokeW}
+        fill="none"
+        strokeDasharray={circ}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform={`rotate(-90 ${size / 2} ${size / 2})`}
+      />
+    </Svg>
+  );
+}
 
 interface ArtworkFlipCardProps {
   artwork: Artwork;
@@ -37,11 +88,32 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
 
   const insets = useSafeAreaInsets();
   const flipRotation = useSharedValue(0);
+  const idleScale = useSharedValue(1);
 
   useEffect(() => {
     setIsFlipped(false);
     flipRotation.value = 0;
     setImageError(false);
+    idleScale.value = 1;
+  }, [artwork.id]);
+
+  // Periodic double-pulse to hint the card is flippable
+  useEffect(() => {
+    const pulse = () => {
+      idleScale.value = withSequence(
+        withTiming(1.25, { duration: 180, easing: Easing.out(Easing.quad) }),
+        withTiming(1.0, { duration: 160, easing: Easing.in(Easing.quad) }),
+        withDelay(180,
+          withSequence(
+            withTiming(1.25, { duration: 180, easing: Easing.out(Easing.quad) }),
+            withTiming(1.0, { duration: 160, easing: Easing.in(Easing.quad) }),
+          ),
+        ),
+      );
+    };
+    const initial = setTimeout(pulse, 3200);
+    const repeat = setInterval(pulse, 9000);
+    return () => { clearTimeout(initial); clearInterval(repeat); };
   }, [artwork.id]);
 
   const handleFlip = () => {
@@ -80,18 +152,22 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
     return { transform: [{ rotateY: `${rotateY}deg` }], opacity };
   });
 
+  const flipButtonStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: idleScale.value }],
+  }));
+
   const encodedUrl = getEncodedImageUrl(artwork.imageUrl);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 6 }]}>
 
-      {/* Card — fills all available vertical space */}
       <View style={styles.cardWrapper}>
         <View style={styles.card}>
 
-          {/* — Front side: image + info overlay — */}
+          {/* — Front side — */}
           <Animated.View style={[styles.cardSide, frontAnimatedStyle]}>
-            {/* Image: tap → zoom */}
+
+            {/* Image — tap to zoom */}
             <Pressable
               style={styles.imageArea}
               onPress={() => !imageError && setIsZoomOpen(true)}
@@ -112,33 +188,38 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
               )}
             </Pressable>
 
-            {/* Info overlay — bottom of image */}
-            <View style={styles.infoOverlay} pointerEvents="none">
-              <Text style={styles.overlayArtistYear} numberOfLines={1}>
-                {artwork.year}
-                {artwork.artistDisplayDate
-                  ? ` · ${artwork.artist} (${artwork.artistDisplayDate})`
-                  : ` · ${artwork.artist}`}
-              </Text>
-              <View style={styles.overlayBottom}>
+            {/* Info overlay — cream panel at card bottom */}
+            <View style={styles.infoOverlay} pointerEvents="box-none">
+              {/* Row 1: artist / year + flip button */}
+              <View style={styles.overlayRow1}>
+                <Text style={styles.overlayArtistYear} numberOfLines={1}>
+                  {artwork.year}
+                  {artwork.artistDisplayDate
+                    ? ` · ${artwork.artist} (${artwork.artistDisplayDate})`
+                    : ` · ${artwork.artist}`}
+                </Text>
+                <AnimatedTouchable
+                  style={[styles.flipButton, flipButtonStyle]}
+                  onPress={handleFlip}
+                  hitSlop={10}
+                  activeOpacity={0.7}
+                >
+                  <FlipIcon size={17} color="#3a2010" />
+                </AnimatedTouchable>
+              </View>
+
+              {/* Row 2: title + day progress ring */}
+              <View style={styles.overlayRow2}>
                 <Text style={styles.overlayTitle} numberOfLines={2}>
                   {artwork.title}
                 </Text>
-                <CountdownTimer variant="text" color="rgba(255,255,255,0.6)" />
+                <DayProgressRing size={24} />
               </View>
             </View>
 
-            {/* Flip button — overlaid bottom-right above info */}
-            <TouchableOpacity
-              style={styles.flipOverlay}
-              onPress={handleFlip}
-              hitSlop={12}
-            >
-              <FlipIcon size={18} color="rgba(255,255,255,0.7)" />
-            </TouchableOpacity>
           </Animated.View>
 
-          {/* — Back side: details — */}
+          {/* — Back side — */}
           <Animated.View style={[styles.cardSide, styles.cardBack, backAnimatedStyle]}>
             <ScrollView
               style={styles.backScroll}
@@ -185,7 +266,6 @@ export function ArtworkFlipCard({ artwork }: ArtworkFlipCardProps) {
         </View>
       </View>
 
-      {/* Modals */}
       <ZoomModal
         visible={isZoomOpen}
         imageUrl={encodedUrl}
@@ -207,22 +287,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 8,
+    paddingBottom: 8,
   },
 
-  // Card
   cardWrapper: {
     flex: 1,
   },
   card: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: CREAM,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
+    elevation: 12,
     overflow: 'hidden',
   },
   cardSide: {
@@ -237,51 +316,11 @@ const styles = StyleSheet.create({
   // Front
   imageArea: {
     flex: 1,
-    backgroundColor: '#F5F0EA',
+    backgroundColor: CREAM,
   },
   image: {
     width: '100%',
     height: '100%',
-  },
-  // Info overlay inside front card
-  infoOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(10,6,4,0.58)',
-    paddingHorizontal: 14,
-    paddingTop: 10,
-    paddingBottom: 12,
-  },
-  overlayArtistYear: {
-    fontSize: 11,
-    fontFamily: 'Helvetica Neue',
-    color: 'rgba(255,255,255,0.65)',
-    marginBottom: 3,
-    letterSpacing: 0.2,
-  },
-  overlayBottom: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  overlayTitle: {
-    flex: 1,
-    fontSize: 19,
-    fontFamily: 'PlayfairDisplay_700Bold',
-    color: '#FFFFFF',
-    lineHeight: 24,
-  },
-
-  flipOverlay: {
-    position: 'absolute',
-    bottom: 70,
-    right: 10,
-    backgroundColor: 'rgba(0,0,0,0.28)',
-    borderRadius: 20,
-    padding: 7,
   },
   imageError: {
     flex: 1,
@@ -299,6 +338,52 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textTertiary,
     textAlign: 'center',
+  },
+
+  // Cream info panel overlaid at the bottom of the front face
+  infoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: CREAM,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: 'rgba(44,24,16,0.12)',
+    paddingHorizontal: 14,
+    paddingTop: 9,
+    paddingBottom: 13,
+  },
+  overlayRow1: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  overlayArtistYear: {
+    flex: 1,
+    fontSize: 11,
+    fontFamily: 'Helvetica Neue',
+    color: 'rgba(44,24,16,0.5)',
+    letterSpacing: 0.2,
+    marginRight: 8,
+  },
+  flipButton: {
+    backgroundColor: 'rgba(44,24,16,0.07)',
+    borderRadius: 16,
+    padding: 6,
+  },
+  overlayRow2: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  overlayTitle: {
+    flex: 1,
+    fontSize: 19,
+    fontFamily: 'PlayfairDisplay_700Bold',
+    color: '#1A1A1A',
+    lineHeight: 25,
   },
 
   // Back
@@ -353,5 +438,4 @@ const styles = StyleSheet.create({
     fontFamily: 'SpecialElite_400Regular',
     color: '#2c1810',
   },
-
 });
