@@ -1,14 +1,19 @@
 /**
- * Fetches artworks from The Art Institute of Chicago API.
+ * Fetches portrait paintings from The Art Institute of Chicago API.
  * https://api.artic.edu/docs/
  * CC0 for public domain works - No API key required.
  */
 
 const https = require('https');
 
-const ARTIC_API = 'https://api.artic.edu/api/v1/artworks';
+const ARTIC_SEARCH = 'https://api.artic.edu/api/v1/artworks/search';
 const ARTIC_IIIF = 'https://www.artic.edu/iiif/2';
 const SOURCE_NAME = 'The Art Institute of Chicago';
+
+const FIELDS = 'id,title,artist_display,artist_title,date_display,date_start,medium_display,credit_line,image_id,thumbnail,is_public_domain,alt_text,artwork_type_title';
+
+// Searches to run — results are merged and deduplicated
+const PORTRAIT_QUERIES = ['portrait', 'figure painting', 'bust painting'];
 
 function fetchJson(url) {
   return new Promise((resolve, reject) => {
@@ -26,16 +31,16 @@ function fetchJson(url) {
   });
 }
 
-function isSuitable(artwork) {
-  const text = `${artwork.title || ''} ${artwork.description || ''}`.toLowerCase();
-  const exclude = ['abstract', 'geometric abstraction', 'color field'];
-  return !exclude.some(term => text.includes(term));
+function isPainting(item) {
+  const type = (item.artwork_type_title || '').toLowerCase();
+  return type === 'painting';
 }
 
 function mapToArtwork(item) {
   const imageId = item.image_id;
+  // Use full resolution via IIIF
   const imageUrl = imageId
-    ? `${ARTIC_IIIF}/${imageId}/full/843,/0/default.jpg`
+    ? `${ARTIC_IIIF}/${imageId}/full/full/0/default.jpg`
     : '';
   const thumb = item.thumbnail;
   return {
@@ -51,38 +56,50 @@ function mapToArtwork(item) {
     period: 'Unknown',
     creditLine: item.credit_line || SOURCE_NAME,
     source: SOURCE_NAME,
-    classification: item.artwork_type_title || item.classification_title || 'Unknown',
+    classification: item.artwork_type_title || 'Painting',
     artistDisplayDate: item.artist_display || undefined,
-    imageDescription: item.alt_text || item.description || undefined,
+    imageDescription: item.alt_text || undefined,
   };
 }
 
-async function fetchArticArtworks(maxCount = 800) {
+async function fetchArticArtworks(maxCount = 400) {
+  const seen = new Set();
   const results = [];
-  let page = 1;
   const limit = 100;
-  const fields = 'id,title,artist_display,artist_title,date_display,date_start,medium_display,credit_line,image_id,thumbnail,is_public_domain,description,alt_text,term_titles,artwork_type_title,classification_title';
 
-  while (results.length < maxCount) {
-    const url = `${ARTIC_API}?limit=${limit}&page=${page}&fields=${fields}`;
-    const res = await fetchJson(url);
-    const items = res.data || [];
+  for (const query of PORTRAIT_QUERIES) {
+    if (results.length >= maxCount) break;
+    let page = 1;
 
-    if (items.length === 0) break;
+    while (results.length < maxCount) {
+      const url = `${ARTIC_SEARCH}?q=${encodeURIComponent(query)}&limit=${limit}&page=${page}&fields=${FIELDS}`;
+      let res;
+      try {
+        res = await fetchJson(url);
+      } catch (e) {
+        console.warn(`  Art Institute: search failed for "${query}":`, e.message);
+        break;
+      }
+      const items = res.data || [];
+      if (items.length === 0) break;
 
-    for (const item of items) {
-      if (!item.is_public_domain) continue;
-      if (!item.image_id) continue;
-      if (!isSuitable(item)) continue;
-      if (!item.title) continue;
+      for (const item of items) {
+        if (!item.is_public_domain) continue;
+        if (!item.image_id) continue;
+        if (!item.title) continue;
+        if (!isPainting(item)) continue;
+        if (seen.has(item.id)) continue;
 
-      results.push(mapToArtwork(item));
-      if (results.length >= maxCount) break;
+        seen.add(item.id);
+        results.push(mapToArtwork(item));
+        if (results.length >= maxCount) break;
+      }
+
+      page++;
+      if (items.length < limit) break;
     }
 
-    page++;
-    if (items.length < limit) break;
-    if (page % 5 === 0) {
+    if (results.length > 0 && results.length % 100 === 0) {
       console.log(`  Art Institute: fetched ${results.length} so far...`);
     }
   }

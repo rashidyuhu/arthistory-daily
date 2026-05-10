@@ -197,17 +197,18 @@ function mapToArtwork(row, imageMap, artistDisplayDateMap) {
 }
 
 /**
- * Check if an artwork is figurative (depicts people).
- * Matches terms in title or imageDescription. Includes all image formats.
+ * Check if a painting depicts a person/portrait (not a landscape or still life).
+ * Requires the imageDescription to mention a face, person, or portrait explicitly.
  */
-function isFigurative(artwork) {
+function isPortraitPainting(artwork) {
+  if (artwork.classification !== 'Painting') return false;
   const title = (artwork.title || '').toLowerCase();
   const desc = (artwork.imageDescription || '').toLowerCase();
   const text = `${title} ${desc}`;
   const terms = [
-    'portrait', 'bust', 'figure', 'figures',
+    'portrait', 'bust',
     'woman', 'man', 'child', 'children', 'person', 'people',
-    'madonna', 'saint'
+    'madonna', 'saint', 'face', 'figure',
   ];
   return terms.some(term => text.includes(term));
 }
@@ -296,10 +297,10 @@ async function processNGAData() {
     console.log('🔄 Converting to app format...');
     const artworks = openAccessArtworks
       .map(row => mapToArtwork(row, imageMap, artistDisplayDateMap))
-      .filter(artwork => artwork.id && artwork.title !== 'Untitled' && artwork.imageUrl) // Remove invalid entries and artworks without images
-      .filter(isFigurative); // Figurative artworks (people) - all image formats included
-    
-    console.log(`✅ Processed ${artworks.length} valid figurative artworks with images`);
+      .filter(artwork => artwork.id && artwork.title !== 'Untitled' && artwork.imageUrl)
+      .filter(isPortraitPainting); // Oil paintings depicting people only
+
+    console.log(`✅ Processed ${artworks.length} valid portrait paintings with images`);
     
     // Ensure data directory exists
     const dataDir = path.dirname(OUTPUT_FILE);
