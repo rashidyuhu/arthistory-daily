@@ -5,6 +5,7 @@ import { SpecialElite_400Regular } from '@expo-google-fonts/special-elite';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { theme } from '../src/theme';
 
 // Prevent the splash screen from auto-hiding before fonts are loaded
@@ -32,8 +33,9 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Stack
+    <SafeAreaProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Stack
         screenOptions={{
           headerShown: false,
           contentStyle: {
@@ -41,8 +43,9 @@ export default function RootLayout() {
           },
         }}
       >
-        <Stack.Screen name="index" />
-      </Stack>
-    </GestureHandlerRootView>
+          <Stack.Screen name="index" />
+        </Stack>
+      </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }
